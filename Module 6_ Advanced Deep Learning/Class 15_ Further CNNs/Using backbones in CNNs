@@ -1,0 +1,237 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## VGG-16 Based CNN\n",
+        "\n",
+        "A simple example on how to import and use the VGG16 architecture\n"
+      ],
+      "metadata": {
+        "id": "dpLm9VUj0aRP"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import tensorflow as tf\n",
+        "from tensorflow.keras.applications import VGG16\n",
+        "from tensorflow.keras.layers import Dense, Flatten\n",
+        "from tensorflow.keras.models import Model\n",
+        "from tensorflow.keras.datasets import cifar10\n",
+        "from tensorflow.keras.utils import to_categorical"
+      ],
+      "metadata": {
+        "id": "pERp4B7T0iKx"
+      },
+      "execution_count": 1,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Load VGG16 pre-trained model without the fully connected layers\n",
+        "vgg16 = VGG16(weights='imagenet', include_top=False, input_shape=(32, 32, 3))"
+      ],
+      "metadata": {
+        "id": "hHEjUy441a3W",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "7cd99c24-efed-421b-f55e-441375aae08b"
+      },
+      "execution_count": 2,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Downloading data from https://storage.googleapis.com/tensorflow/keras-applications/vgg16/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5\n",
+            "58889256/58889256 [==============================] - 3s 0us/step\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Load and preprocess CIFAR-10 data\n",
+        "(train_images, train_labels), (test_images, test_labels) = cifar10.load_data()\n",
+        "train_images = train_images.astype('float32') / 255.0\n",
+        "test_images = test_images.astype('float32') / 255.0\n",
+        "train_labels = to_categorical(train_labels)\n",
+        "test_labels = to_categorical(test_labels)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "2R6bXI5xQ5p-",
+        "outputId": "3cb121fa-4a4d-42c1-81d9-7e1dbbd8dc50"
+      },
+      "execution_count": 4,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Downloading data from https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz\n",
+            "170498071/170498071 [==============================] - 15s 0us/step\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Freeze the layers of VGG16 (often done on new tasks with limited data)\n",
+        "for layer in vgg16.layers:\n",
+        "    layer.trainable = False\n",
+        "\n",
+        "# Add custom layers\n",
+        "x = Flatten()(vgg16.output)\n",
+        "x = Dense(128, activation='relu')(x)\n",
+        "predictions = Dense(10, activation='softmax')(x)\n",
+        "\n",
+        "# Create the model\n",
+        "model = Model(inputs=vgg16.input, outputs=predictions)\n",
+        "model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])\n",
+        "\n",
+        "# Train the model\n",
+        "model.fit(train_images, train_labels, batch_size=64, epochs=10, validation_data=(test_images, test_labels))"
+      ],
+      "metadata": {
+        "id": "XlcmszPN1et6",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "1d52f48d-75af-41c3-be5c-18ae1fd3204d"
+      },
+      "execution_count": 5,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Epoch 1/10\n",
+            "782/782 [==============================] - 668s 853ms/step - loss: 1.3989 - accuracy: 0.5115 - val_loss: 1.2647 - val_accuracy: 0.5579\n",
+            "Epoch 2/10\n",
+            "782/782 [==============================] - 647s 827ms/step - loss: 1.2019 - accuracy: 0.5832 - val_loss: 1.2137 - val_accuracy: 0.5786\n",
+            "Epoch 3/10\n",
+            "782/782 [==============================] - 604s 772ms/step - loss: 1.1473 - accuracy: 0.6007 - val_loss: 1.1743 - val_accuracy: 0.5877\n",
+            "Epoch 4/10\n",
+            "782/782 [==============================] - 645s 826ms/step - loss: 1.1107 - accuracy: 0.6127 - val_loss: 1.1577 - val_accuracy: 0.5954\n",
+            "Epoch 5/10\n",
+            "782/782 [==============================] - 645s 825ms/step - loss: 1.0806 - accuracy: 0.6240 - val_loss: 1.1671 - val_accuracy: 0.5898\n",
+            "Epoch 6/10\n",
+            "782/782 [==============================] - 646s 826ms/step - loss: 1.0559 - accuracy: 0.6313 - val_loss: 1.1309 - val_accuracy: 0.6025\n",
+            "Epoch 7/10\n",
+            "782/782 [==============================] - 645s 825ms/step - loss: 1.0320 - accuracy: 0.6399 - val_loss: 1.1303 - val_accuracy: 0.6070\n",
+            "Epoch 8/10\n",
+            "782/782 [==============================] - 647s 827ms/step - loss: 1.0067 - accuracy: 0.6486 - val_loss: 1.1442 - val_accuracy: 0.5945\n",
+            "Epoch 9/10\n",
+            "782/782 [==============================] - 649s 830ms/step - loss: 0.9868 - accuracy: 0.6542 - val_loss: 1.1212 - val_accuracy: 0.6098\n",
+            "Epoch 10/10\n",
+            "782/782 [==============================] - 649s 831ms/step - loss: 0.9674 - accuracy: 0.6614 - val_loss: 1.1199 - val_accuracy: 0.6085\n"
+          ]
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "<keras.src.callbacks.History at 0x7c810932ee60>"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 5
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## ResNet-50 based CNN\n",
+        "\n",
+        "The same thing but using ResNet-50"
+      ],
+      "metadata": {
+        "id": "QdVctEjwT3vN"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from tensorflow.keras.applications import ResNet50\n",
+        "\n",
+        "# Load ResNet50 pre-trained\n",
+        "resnet50 = ResNet50(weights='imagenet', include_top=False, input_shape=(32, 32, 3))\n",
+        "\n",
+        "# Freeze the layers of ResNet50\n",
+        "for layer in resnet50.layers:\n",
+        "    layer.trainable = False\n",
+        "\n",
+        "# Add layers\n",
+        "x = Flatten()(resnet50.output)\n",
+        "x = Dense(128, activation='relu')(x)\n",
+        "predictions = Dense(10, activation='softmax')(x)\n",
+        "\n",
+        "# Create the model\n",
+        "model = Model(inputs=resnet50.input, outputs=predictions)\n",
+        "model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])\n",
+        "\n",
+        "# Train the model\n",
+        "model.fit(train_images, train_labels, batch_size=64, epochs=10, validation_data=(test_images, test_labels))\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "X_ue-hvGT89a",
+        "outputId": "bc7ae5f0-2dff-4766-ddaa-4bcd684a626f"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Downloading data from https://storage.googleapis.com/tensorflow/keras-applications/resnet/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5\n",
+            "94765736/94765736 [==============================] - 4s 0us/step\n",
+            "Epoch 1/10\n",
+            "782/782 [==============================] - 228s 287ms/step - loss: 2.0811 - accuracy: 0.2383 - val_loss: 1.9123 - val_accuracy: 0.3129\n",
+            "Epoch 2/10\n",
+            "782/782 [==============================] - 216s 276ms/step - loss: 1.8943 - accuracy: 0.3143 - val_loss: 1.8623 - val_accuracy: 0.3182\n",
+            "Epoch 3/10\n",
+            "782/782 [==============================] - 225s 288ms/step - loss: 1.8344 - accuracy: 0.3351 - val_loss: 1.8090 - val_accuracy: 0.3470\n",
+            "Epoch 4/10\n",
+            "782/782 [==============================] - 216s 276ms/step - loss: 1.7907 - accuracy: 0.3562 - val_loss: 1.8214 - val_accuracy: 0.3399\n",
+            "Epoch 5/10\n",
+            "782/782 [==============================] - 222s 284ms/step - loss: 1.7693 - accuracy: 0.3619 - val_loss: 1.7290 - val_accuracy: 0.3896\n",
+            "Epoch 6/10\n",
+            "782/782 [==============================] - 225s 287ms/step - loss: 1.7453 - accuracy: 0.3724 - val_loss: 1.6945 - val_accuracy: 0.3968\n",
+            "Epoch 7/10\n",
+            "782/782 [==============================] - 208s 267ms/step - loss: 1.7269 - accuracy: 0.3792 - val_loss: 1.7249 - val_accuracy: 0.3806\n",
+            "Epoch 8/10\n",
+            "782/782 [==============================] - 212s 271ms/step - loss: 1.7191 - accuracy: 0.3853 - val_loss: 1.7266 - val_accuracy: 0.3861\n",
+            "Epoch 9/10\n",
+            "702/782 [=========================>....] - ETA: 17s - loss: 1.7079 - accuracy: 0.3883"
+          ]
+        }
+      ]
+    }
+  ]
+}
